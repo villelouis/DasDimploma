@@ -14,12 +14,12 @@ class TableManager {
     /*
     Методы для управления файлами таблиц
      */
-    constructor(tableName, user, caption = null) {
+    constructor(tableName, user, {caption}={}) {
         this.user = user;
         this.currentTable = tableName;
         this.METATABLE = this.loadTable(METATABLE_name);
         if (!this.tableExists(tableName)) {
-            this.addTableToMETATABLE(tableName, caption, user);
+            this.addTableToMETATABLE(tableName, {caption:caption, user:user});
         }
         this.db = this.loadTable(tableName);
     }
@@ -41,9 +41,9 @@ class TableManager {
         });
     }
 
-    setCurrentTable(tableName, caption = null, user = null,callback) {
+    setCurrentTable(tableName, {caption, user,callback}={}) {
         if (!this.tableExists(tableName)) {
-            this.addTableToMETATABLE(tableName, caption, user,callback)
+            this.addTableToMETATABLE(tableName, {caption:caption, user:user,callback:callback})
         }
         this.currentTable = tableName;
         this.db = this.loadTable(tableName);
@@ -53,10 +53,8 @@ class TableManager {
         return this.currentTable;
     }
 
-    getAllTablesOfUser(callback, user = null) {
-        if (user == null) {
-            user = this.user;
-        }
+    getAllTablesOfUser({callback, user}={}) {
+        user = user === undefined? this.user : user;
         return this.METATABLE.find({user: user}, callback)
     }
 
@@ -64,19 +62,19 @@ class TableManager {
         this.METATABLE.find({}, callback)
     }
 
-    removeTable(tableName = null,callback) {
-        tableName = tableName == null ? this.currentTable : tableName;
-        this.removeTableFromMETATABLE(tableName,callback);
+    removeTable({tableName,callback}={}) {
+        tableName = tableName === undefined ? this.currentTable : tableName;
+        this.removeTableFromMETATABLE(tableName,{callback:callback});
         fs.unlink(this.getFullTablePath(tableName), (err) => {
             if (err) throw err;
             console.log(`${tableName} was deleted`);
         });
+        this.currentTable = this.currentTable === tableName ? undefined:this.currentTable;
     }
 
-    renameTable(newName, tableName = null) {
-        if (tableName == null) {
-            tableName = this.currentTable
-        }
+    renameTable(newName, {tableName}={}) {
+        tableName = tableName === undefined ? this.currentTable: tableName;
+
         this.METATABLE.findOne({_id: `${this.user}@${tableName}`}, function (record) {
             record.table = newName;
             this.METATABLE.insert(record);
@@ -93,9 +91,9 @@ class TableManager {
     /*
    Методы для работы с МЕТАТАБЛИЦЕЙ
     */
-    addTableToMETATABLE(tableName, caption = null, user = null,callback) {
-        user = user == null ? this.user : user;
-        caption = caption == null ? tableName : caption;
+    addTableToMETATABLE(tableName, {caption, user,callback}={}) {
+        user = user === undefined ? this.user : user;
+        caption = caption === undefined ? tableName : caption;
         let doc = {
             _id: `${user}@${tableName}`,
             user: user,
@@ -105,10 +103,10 @@ class TableManager {
         this.METATABLE.insert(doc,callback);
     }
 
-    removeTableFromMETATABLE(tableName,callback,user = null){
-        user = user == null ? this.user : user;
+    removeTableFromMETATABLE(tableName,{callback,user}={}){
+        user = user === undefined ? this.user : user;
         console.log("remove for USER ==================>",user,tableName);
-        this.METATABLE.remove({_id:`${user}@${tableName}`},callback)
+        this.METATABLE.remove({_id:`${user}@${tableName}`},callback);
     }
 
     /*
@@ -133,49 +131,53 @@ class TableManager {
 
 function t() {
     // ======================================================
-    console.log(11111111111111111111111111111111111111111)
     let db = new TableManager("Bananas", "Max");
     console.log("Текущая таблица", db.getCurrentTable());
     console.log("Текущий пользователь", db.getCurrentUser());
     // =======================================================
     db.getAllTables(function (err, res) {
-        console.log(22222222222222222222222222222222)
         console.log("Все имеющиеся таблицы: ");
         console.log(res)
     });
     // =======================================================
-    db.getAllTablesOfUser("Max", function (err, res) {
-        console.log(333333333333333333333333333)
+    db.getAllTablesOfUser({user:"Max", callback:function (err, res) {
         console.log("Таблицы опр пользователя: ");
         console.log(res)
-    });
-    db.getAllTablesOfUser("Jake", function (err, res) {
-        console.log(4444444444444444444444444444444)
+    }});
+    db.getAllTablesOfUser({user:"Jake", callback:function (err, res) {
         console.log("Таблицы несуществующего пользователя: ");
         console.log(res)
-    });
+    }});
     // =======================================================
-    db.setCurrentTable("Apples");
-    db.getAllTables(function (err, res) {
-        console.log(55555555555555555)
-        console.log("Создадим новую (тоже что и СМЕНИМ) таблицу: ");
-        console.log("Проверим, что всё обновилось: ");
-        console.log("Все таблицы: ");
-        console.log(res);
-        db.getAllTablesOfUser("Max", function (err, res) {
-            console.log("Таблицы пользователя: ");
-            console.log(res)
-        });
-        console.log("Текущая таблица:", db.getCurrentTable());
-        db.removeTable('Apples',function (err,res) {
-            console.error("========================================");
-            console.log("Пробуем удаление табицы",res);
-            console.error("========================================");
-        });
-    });
+    db.setCurrentTable("Apples",{callback:()=>{
+            db.getAllTables(function (err, res) {
+                console.log("Создадим новую (тоже что и СМЕНИМ) таблицу: ");
+                console.log("Проверим, что всё обновилось: ");
+                console.log("Все таблицы: ");
+                console.log(res);
+                db.getAllTablesOfUser({user:"Max", callback:function (err, res) {
+                        console.log("Таблицы пользователя: ");
+                        console.log(res);
+                    }});
+                console.log("Текущая таблица:", db.getCurrentTable());
+                db.removeTable({tableName:'Apples',callback:function (err,res) {
+                        console.error("========================================");
+                        console.log("Пробуем удаление табицы",res);
+                        console.error("========================================");
+                    }});
+                db.getAllTablesOfUser({user:"Max", callback:function (err, res) {
+                        console.log("Таблицы пользователя после удаления: ");
+                        console.log(res);
+                        console.log("Текущая таблица ПОСЛЕ УДАЛЕНИЯ:", db.getCurrentTable());
+                    }});
+            });
+            db.setCurrentTable("Bananas",{callback:()=>{}});
+        }});
+
     // =======================================================
 
-
+    // db.setCurrentTable("Oranges",{callback:()=>{}});
+    // =======================================================
 }
 
-t()
+t();
