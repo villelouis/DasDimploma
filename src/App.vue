@@ -2,7 +2,7 @@
   <v-app>
     <v-toolbar app>
       <v-toolbar-title class="headline text-uppercase">
-        <span>Помощник</span>
+        <span>Помощник {{tbname}}</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <TableList/>
@@ -19,9 +19,12 @@
 <script>
 // import Tabs from "./components/Tabs";
 // import ItemTable from "./components/ItemTable";
+// const console = require('console');
 import SimpleTable from "./components/SimpleTable";
 import TableList from "./components/TableList";
+import TableManager from "./database/TableManager"
 
+let db = new TableManager('URA');
 export default {
   name: 'App',
   components: {
@@ -31,6 +34,8 @@ export default {
   },
   data () {
     return {
+      tbname : db.getCurrentTable()
+      // fpath: db.getFullTablePath()
     }
   }
 }

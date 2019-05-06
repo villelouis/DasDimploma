@@ -1,165 +1,370 @@
 'use strict'
+// /*
+const Store = require('nedb');
 
-const Store = require('nedb-async').default;
-const metaTableStore = require('./MetaTableStore');
+
+// Системные
 const path = require('path');
 const console = require('console');
+const fs = require('fs');
+
 const DB_settings = require('./db_settings');
-const path_to_db = DB_settings.path_to_db;
-const metaTableName = DB_settings.meta_table_name;
+// путь к папке с файлами баз данных:
+// const path_to_dbs = path.join(__dirname, DB_settings.path_to_db);
+
+const remote = require('electron').remote;
+const app = remote.app;
+const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
+console.log("Путь до файлов Базы данных : ",path_to_dbs);
+const METATABLE_name = DB_settings.meta_table_name;
+ // */
+
+// ================ ES6 ИМПОРТЫ : =======================
+/*
+//Cистемные:
+import path from 'path'
+import fs from 'fs'
+import console from 'console'
+
+import { remote } from 'electron'
+import Store from 'nedb';
+
+// Настройки приложения :
+import DB_settings from './db_settings';
+const path_to_dbs = path.join(remote.app.getPath('datastore'), DB_settings.path_to_db);
+const METATABLE_name = DB_settings.meta_table_name;
+console.log("Путь до файлов Базы данных : ",path_to_dbs);
+*/
 
 class TableManager {
-    constructor(tableName = null) {
-
-        this.metadb = new metaTableStore();
-        this.currentTable = null;
-        this.db = null;
-        if (tableName != null){
-            this.db = this.loadTable(tableName);
-            this.currentTable = `${tableName}.db`
+    /*
+    Методы для управления файлами таблиц
+     */
+    constructor(tableName, user, {caption} = {}) {
+        this.user = user;
+        this.currentTable = tableName;
+        this.METATABLE = this.loadTable(METATABLE_name);
+        if (!this.tableExists(tableName)) {
+            this.addTableToMETATABLE(tableName, {caption: caption, user: user});
         }
+        this.db = this.loadTable(tableName);
     }
 
+    // +
+    getFullTablePath(tableName) {
+        return path.join(path_to_dbs, tableName);
+    }
+
+    // +
+    tableExists(tableName) {
+        let fullFileName = this.getFullTablePath(tableName);
+        return fs.existsSync(fullFileName);
+    }
+
+    // может использоваться, как для загрузки таблиц,так и для создания
     loadTable(tableName) {
-        let full_path = path.join(path_to_db, `${tableName}.db`);
-        console.log(`Я собираюсь загрузить ${full_path}`);
-        this.db = new Store({
-            filename: full_path,
+        return new Store({
+            filename: this.getFullTablePath(tableName),
             autoload: true
         });
-        console.log(this.db);
-        this.db.loadDatabase((err) => {
-                console.log("loadTable",err)
-            }
-        );
     }
 
-    setCurrentTable(tableName){
-        this.loadTable(tableName);
+    // +
+    setCurrentTable(tableName, {caption, user, callback} = {}) {
+        if (!this.tableExists(tableName)) {
+            this.addTableToMETATABLE(tableName, {caption: caption, user: user, callback: callback})
+        }
         this.currentTable = tableName;
+        this.db = this.loadTable(tableName);
     }
 
-    getCurrntTable(){
+    // +
+    getAllTablesOfUser({callback, user} = {}) {
+        user = user === undefined ? this.user : user;
+        return this.METATABLE.find({user: user}, callback)
+    }
+
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+
+    asyncSetCurrentTable(tableName, {caption, user} = {}) {
+        let self = this;
+        return new Promise(function (resolve) {
+            self.currentTable = tableName;
+            self.db = self.loadTable(tableName);
+            if (!self.tableExists(tableName)) {
+                self.asyncAddTableToMETATABLE(tableName, {caption: caption, user: user}).then(
+                    () => {
+                        resolve();
+                    }
+                );
+            }
+        });
+    }
+
+    getCurrentTable() {
         return this.currentTable;
     }
 
-    addTable(tableName,caption,columns){
-        return this.metadb.addTable(tableName,caption,columns);
-    }
-
-    getTable(tableName){
-        return this.metadb.getTable(tableName);
-    }
-
-    getAllTables(){
-        return this.metadb.getAllTables();
-    }
-
-    removeTable(tableName) {
-        return this.metadb.removeTable(tableName);
-    }
-
-    addRecord(columnValues) {
-        return this.db.asyncInsert(columnValues);
-    }
-
-    getAllRecords() {
-        return this.db.asyncFind({});
-    }
-
-    getRecordById(recordId) {
-        return this.db.asyncFindOne({_id: recordId});
-    }
-
-    updateRecord(recordId, changesDict) {
-        return this.db.asyncUpdate({_id: recordId}, changesDict);
-    }
-
-    removeRecordById(recordId) {
-        return this.db.asyncRemove({_id: recordId});
-    }
-}
-
-function test() {
-    let db = new TableManager("Bananas");
-
-    db.removeRecordById("B").then();
-
-    db.addRecord({_id: "A", name: "simple", cost: 60, color: "yellow"})
-        .then()
-        .catch((e) => {
-            console.log("Ошибка во время добавления записи")
+    asyncGetAllTablesOfUser(user = undefined) {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            user = user === undefined ? self.user : user;
+            return self.METATABLE.find({user: user}, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
         });
+        /* пример использования:
+            asyncGetAllTablesOfUser().then(function (doc) {
+                console.log(doc)
+            });
+        */
+    }
 
-    db.addRecord({_id: "B", name: "origin", cost: 20, color: "white-yellow"})
-        .then()
-        .catch((e) => {
-            console.log("Ошибка во время добавления записи")
+    asyncGetAllTables() {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            self.METATABLE.find({}, function (err, doc) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
         });
-    // с помощью set меняем только выделенные поля :
-    db.updateRecord("B", {$set: {name: "Ipata", cost: 77}});
+    }
 
-    db.getAllRecords()
-        .then((result) => {
-            console.log(result)
+    /*
+    Методы для работы с МЕТАТАБЛИЦЕЙ
+    */
+    asyncAddTableToMETATABLE(tableName, {caption, user} = {}) {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            user = user === undefined ? self.user : user;
+            caption = caption === undefined ? tableName : caption;
+            let doc = {
+                _id: `${user}@${tableName}`,
+                user: user,
+                table: tableName,
+                caption: caption
+            };
+            self.METATABLE.insert(doc, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
+        });
+    }
+
+    asyncRemoveTable({tableName, user} = {}) {
+        let self = this;
+        return new Promise(function (resolve) {
+            tableName = tableName === undefined ? self.currentTable : tableName;
+            self.asyncRemoveTableFromMETATABLE(tableName, {user: user}).then(
+                () => {
+                    resolve()
+                }
+            );
+            fs.unlink(self.getFullTablePath(tableName), (err) => {
+                if (err) throw err;
+                console.log(`${tableName} was deleted`);
+            });
+            self.currentTable = self.currentTable === tableName ? undefined : self.currentTable;
+        });
+    }
+
+    asyncRemoveTableFromMETATABLE(tableName, {user} = {}) {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            user = user === undefined ? self.user : user;
+            console.log("remove for USER ==================>", user, tableName);
+            self.METATABLE.remove({_id: `${user}@${tableName}`}, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
         })
-        .catch((e) => {
-            console.log("Ошибка во время получения всех записей")
+    }
+
+    /*
+   Методы для управлением содержимым таблицы
+    */
+    asyncAddRecord(itemId, columnValuesDict) {
+        // item - уникальное наименование товара
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            let item = {
+                _id: `${itemId}`,
+            };
+            self.db.insert(Object.assign(item, columnValuesDict), (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
+        });
+    }
+
+    asyncGetRecord(itemId) {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            self.db.findOne({_id: itemId}, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
+        });
+    }
+
+    asyncGetAllRecords() {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            self.db.find({}, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
+        });
+    }
+
+    asyncRemoveRecord(itemId) {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            self.db.remove({_id: itemId}, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
+        });
+    }
+
+    asyncUpdateRecord(itemId, updateColumnsDict) {
+        let self = this;
+        return new Promise(function (resolve, reject) {
+            let item = {
+                _id: `${itemId}`,
+            };
+            self.db.update(item, {$set: updateColumnsDict}, (err, doc) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(doc);
+                }
+            });
+        });
+    }
+
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+//==================================================================================================================================
+    //    +
+    getAllTables(callback) {
+        this.METATABLE.find({}, callback)
+    }
+
+    removeTable({tableName, callback} = {}) {
+        tableName = tableName === undefined ? this.currentTable : tableName;
+        this.removeTableFromMETATABLE(tableName, {callback: callback});
+        fs.unlink(this.getFullTablePath(tableName), (err) => {
+            if (err) throw err;
+            console.log(`${tableName} was deleted`);
+        });
+        this.currentTable = this.currentTable === tableName ? undefined : this.currentTable;
+    }
+
+    renameTable(newName, {tableName} = {}) {
+        tableName = tableName === undefined ? this.currentTable : tableName;
+
+        this.METATABLE.findOne({_id: `${this.user}@${tableName}`}, function (record) {
+            record.table = newName;
+            this.METATABLE.insert(record);
+            this.METATABLE.remove({_id: `${this.user}@${tableName}`});
         });
 
-    db.getRecordById("A").then((record) => {
-        console.log(record)
-    })
+        fs.rename(this.getFullTablePath(tableName), this.getFullTablePath(newName),
+            function (err) {
+                if (err) console.log('Ошибка во время попытки переименовать таблицу: ' + err);
+            });
+        this.currentTable = newName;
+    }
+
+    /*
+   Методы для работы с МЕТАТАБЛИЦЕЙ
+    */
+
+    // +
+    addTableToMETATABLE(tableName, {caption, user, callback} = {}) {
+        user = user === undefined ? this.user : user;
+        caption = caption === undefined ? tableName : caption;
+        let doc = {
+            _id: `${user}@${tableName}`,
+            user: user,
+            table: tableName,
+            caption: caption
+        };
+        this.METATABLE.insert(doc, callback);
+    }
+
+    // +
+    removeTableFromMETATABLE(tableName, {callback, user} = {}) {
+        user = user === undefined ? this.user : user;
+        console.log("remove for USER ==================>", user, tableName);
+        this.METATABLE.remove({_id: `${user}@${tableName}`}, callback);
+    }
+
+    /*
+    Методы для работы с пользователями
+     */
+    getCurrentUser() {
+        return this.user;
+    }
+
+    setCurrentUser(newUser) {
+        this.user = newUser;
+    }
+
+    /*
+    Методы для управлением содержимым таблицы
+     */
+
+    // $
+    addRecord(item, columnValuesDict) {
+        this.db.insert(Object.assign(item, columnValuesDict));
+    }
+
 }
 
-function test_meta_table_store_methods() {
-    let db = new TableManager();
-    db.addTable("Вишенки","Вишенки!",["красные","синие","зелёные","ещё какие то"]).then().catch((err)=>{
-        console.log(err)
-    });
-    db.addTable("Пироженки","Сюськи!",["красные","синие","зелёные","ещё какие то"]).then().catch((err)=>{
-        console.log(err)
-    });
-    db.getAllTables().then((res)=>{
-        console.log(res);
-        db.removeTable("Пироженки").then().catch((err)=>{
-            console.log(err)
-        });
-        db.getAllTables().then((res)=>{
-            console.log(res);
-        }).catch((err)=>{
-            console.log(err)
-        });
-    });
-    return db;
-}
-
-function test_add_values(){
-    // создаём таблицу Вишенки, после добавляем в нёё значения
-    let db = test_meta_table_store_methods();
-    console.log(db.getCurrntTable());
-    db.setCurrentTable('Вишенки');
-    db.addRecord(["80","11","12","23"]).then(
-        () => {
-            db.getAllRecords().then(
-                (r) => {console.log(r)}
-            )
-        }
-    )
-}
-
-function testLoadTable(){
-    let db = new TableManager("Banana");
-    db.loadTable("Banana")
-    // console.log(db.getCurrntTable());
-    // db.addRecord(["80","11","12","23"]).then(
-    //     () => {
-    //         db.getAllRecords().then(
-    //             (r) => {console.log(r)}
-    //         )
-    //     }
-    // )
-}
-testLoadTable()
-
-module.exports = TableManager;
+//=============================ЗАПУСК===========================================
+// Вариант для теста:
+// exports.TableManager = TableManager;
+// Вариант для работы:
+export default TableManager
+//==============================================================================
