@@ -22,9 +22,8 @@
 // const console = require('console');
 import SimpleTable from "./components/SimpleTable";
 import TableList from "./components/TableList";
-import TableManager from "./database/TableManager"
-
-let db = new TableManager('URA');
+// import TableManager from "./database/TableManager"
+// let db = new TableManager('URA');
 export default {
   name: 'App',
   components: {
@@ -34,7 +33,8 @@ export default {
   },
   data () {
     return {
-      tbname : db.getCurrentTable()
+      tbname : this.$db.getCurrentTable()
+      // tbname : db.getCurrentTable()
       // fpath: db.getFullTablePath()
     }
   }
