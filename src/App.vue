@@ -1,33 +1,33 @@
 <template>
-  <v-app>
-    <v-toolbar app>
-      <v-toolbar-title class="headline text-uppercase">
-        <span>Помощник {{tbname}}</span>
-      </v-toolbar-title>
-      <v-spacer></v-spacer>
-      <TableList/>
-    </v-toolbar>
-    <v-content>
-      <!--<Tabs/>-->
-      <!--<ItemTable/>-->
+    <MainTabs/>
+<!--    <v-toolbar app>-->
+<!--      <v-toolbar-title class="headline text-uppercase">-->
+<!--        <span>Помощник {{tbname}}</span>-->
+<!--      </v-toolbar-title>-->
+<!--      <v-spacer></v-spacer>-->
+<!--      <TableList/>-->
+<!--    </v-toolbar>-->
 
-      <SimpleTable table-name="dressesToBuy"/>
-    </v-content>
-  </v-app>
+<!--    <v-content>-->
+      <!--<Tabs/>-->
+<!--      <ItemTable/>-->
+
+<!--      <SimpleTable table-name="dressesToBuy"/>-->
+<!--    </v-content>-->
 </template>
 
 <script>
-// import Tabs from "./components/Tabs";
-// import ItemTable from "./components/ItemTable";
-// const console = require('console');
+
+
 import SimpleTable from "./components/SimpleTable";
 import TableList from "./components/TableList";
-// import TableManager from "./database/TableManager"
-// let db = new TableManager('URA');
+import MainTabs from "./components/MainTabs";
+
 export default {
   name: 'App',
   components: {
     // ItemTable
+    MainTabs,
     TableList,
     SimpleTable
   },

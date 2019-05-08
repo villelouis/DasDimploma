@@ -44,8 +44,9 @@
             getTables: function () {
                 let tables = this.tables;
                 this.$db.asyncGetAllTables().then(function (doc) {
+                    console.log(doc[0]);
                     for (let i in doc){
-                        tables.push({title:doc[i]});
+                        tables.push({title:doc[i]['caption']});
                     }
                 }).catch(e => {console.log(e)})
             }
