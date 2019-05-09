@@ -1,10 +1,11 @@
-import AAA from "./views/AAA"
-import SimpleTable from "./components/SimpleTable"
 import VueRouter from 'vue-router'
 
+import CurrentTable from './views/CurrentTable'
+import Tables from "./views/Tables";
+
 const routes = [
-    { path: '/AAA', component: AAA },
-    { path: '/Table', component: SimpleTable },
+    { path: '/CurrentTable/:tableName', component: CurrentTable,props:true},
+    { path: '/Tables', component: Tables },
 ]
 
 export const router = new VueRouter({

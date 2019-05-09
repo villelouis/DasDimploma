@@ -1,5 +1,5 @@
 'use strict'
-// /*
+/*
 const Store = require('nedb');
 
 
@@ -10,38 +10,49 @@ const fs = require('fs');
 
 const DB_settings = require('./db_settings');
 // путь к папке с файлами баз данных:
-// const path_to_dbs = path.join(__dirname, DB_settings.path_to_db);
+const path_to_dbs = path.join(__dirname, DB_settings.path_to_db);
 
-const remote = require('electron').remote;
-const app = remote.app;
-const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
+// const remote = require('electron').remote;
+// const app = remote.app;
+// const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
 console.log("Путь до файлов Базы данных : ",path_to_dbs);
 const METATABLE_name = DB_settings.meta_table_name;
  // */
 
 // ================ ES6 ИМПОРТЫ : =======================
-/*
-//Cистемные:
+// /*
+// Cистемные:
 import path from 'path'
 import fs from 'fs'
 import console from 'console'
 
-import { remote } from 'electron'
 import Store from 'nedb';
 
 // Настройки приложения :
 import DB_settings from './db_settings';
-const path_to_dbs = path.join(remote.app.getPath('datastore'), DB_settings.path_to_db);
+
+// const remote = require('electron').remote;
+// const app = remote.app;
+// const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
+const path_to_dbs = path.join(__dirname, DB_settings.path_to_db);
+//for test:
+// const path_to_dbs = path.join("/home/ubuntu", DB_settings.path_to_db);
+//
+
+const defaultUser = DB_settings.user;
+const defaultTableName = DB_settings.defaultTableName;
+
 const METATABLE_name = DB_settings.meta_table_name;
 console.log("Путь до файлов Базы данных : ",path_to_dbs);
-*/
+// */
 
 class TableManager {
     /*
     Методы для управления файлами таблиц
      */
-    constructor(tableName, user, {caption} = {}) {
-        this.user = user;
+    constructor({tableName,user,caption} = {}) {
+        tableName = tableName === undefined ? defaultTableName:tableName;
+        user = user === undefined ? defaultUser:user;
         this.currentTable = tableName;
         this.METATABLE = this.loadTable(METATABLE_name);
         if (!this.tableExists(tableName)) {

@@ -78,3 +78,6 @@ if (isDevelopment) {
     })
   }
 }
+
+// Работа с межпроцессорным взаимодействием :
+import backapi from './ipc/backapi'

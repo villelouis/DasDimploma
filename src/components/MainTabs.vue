@@ -1,5 +1,6 @@
 <template>
     <v-app>
+        <div class="test">{{test}}</div>
         <div>
             <v-toolbar title>
                 <v-toolbar-side-icon
@@ -63,12 +64,13 @@
 
     export default {
         name: "MainTabs",
+        props:['test'],
         data() {
             return {
                 drawer: null,
                 items: [
-                    {title: this.getCurrentTable(), icon: 'dashboard',route:"/AAA"},
-                    {title: 'Выбрать таблицу', icon: 'question_answer',route:"/Table"}
+                    {title: this.getCurrentTable(), icon: 'dashboard',route:"/CurrentTable/dressesToBuy"},
+                    {title: 'Выбрать таблицу', icon: 'question_answer',route:"/Tables"}
                 ],
                 mini: false,
                 right: null,
@@ -76,7 +78,7 @@
         },
         methods:{
             getCurrentTable: function(){
-                return "currentTable"
+                return "Текущая таблица"
             }
         }
     }
