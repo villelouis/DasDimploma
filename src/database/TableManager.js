@@ -1,26 +1,5 @@
 'use strict'
-/*
-const Store = require('nedb');
 
-
-// Системные
-const path = require('path');
-const console = require('console');
-const fs = require('fs');
-
-const DB_settings = require('./db_settings');
-// путь к папке с файлами баз данных:
-const path_to_dbs = path.join(__dirname, DB_settings.path_to_db);
-
-// const remote = require('electron').remote;
-// const app = remote.app;
-// const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
-console.log("Путь до файлов Базы данных : ",path_to_dbs);
-const METATABLE_name = DB_settings.meta_table_name;
- // */
-
-// ================ ES6 ИМПОРТЫ : =======================
-// /*
 // Cистемные:
 import path from 'path'
 import fs from 'fs'
@@ -31,42 +10,36 @@ import Store from 'nedb';
 // Настройки приложения :
 import DB_settings from './db_settings';
 
-// const remote = require('electron').remote;
-// const app = remote.app;
-// const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
-const path_to_dbs = path.join(__dirname, DB_settings.path_to_db);
-//for test:
-// const path_to_dbs = path.join("/home/ubuntu", DB_settings.path_to_db);
-//
+const electron = require('electron');
+const app = electron.app;
+const path_to_dbs = path.join(app.getPath('userData'), DB_settings.path_to_db);
+console.log("Путь до файлов Базы данных : ",path_to_dbs);
 
 const defaultUser = DB_settings.user;
 const defaultTableName = DB_settings.defaultTableName;
 
 const METATABLE_name = DB_settings.meta_table_name;
-console.log("Путь до файлов Базы данных : ",path_to_dbs);
-// */
+
 
 class TableManager {
     /*
     Методы для управления файлами таблиц
      */
     constructor({tableName,user,caption} = {}) {
-        tableName = tableName === undefined ? defaultTableName:tableName;
-        user = user === undefined ? defaultUser:user;
-        this.currentTable = tableName;
+        this.user = user === undefined ? defaultUser:user;
+        this.currentTable = tableName === undefined ? defaultTableName:tableName;
+        this.caption = caption === undefined ? this.currentTable : caption;
         this.METATABLE = this.loadTable(METATABLE_name);
-        if (!this.tableExists(tableName)) {
-            this.addTableToMETATABLE(tableName, {caption: caption, user: user});
+        if (!this.tableExists(this.currentTable)) {
+            this.addTableToMETATABLE(this.currentTable, {caption: caption, user: this.user});
         }
-        this.db = this.loadTable(tableName);
+        this.db = this.loadTable(this.currentTable);
     }
 
-    // +
     getFullTablePath(tableName) {
         return path.join(path_to_dbs, tableName);
     }
 
-    // +
     tableExists(tableName) {
         let fullFileName = this.getFullTablePath(tableName);
         return fs.existsSync(fullFileName);
@@ -79,31 +52,6 @@ class TableManager {
             autoload: true
         });
     }
-
-    // +
-    setCurrentTable(tableName, {caption, user, callback} = {}) {
-        if (!this.tableExists(tableName)) {
-            this.addTableToMETATABLE(tableName, {caption: caption, user: user, callback: callback})
-        }
-        this.currentTable = tableName;
-        this.db = this.loadTable(tableName);
-    }
-
-    // +
-    getAllTablesOfUser({callback, user} = {}) {
-        user = user === undefined ? this.user : user;
-        return this.METATABLE.find({user: user}, callback)
-    }
-
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
 
     asyncSetCurrentTable(tableName, {caption, user} = {}) {
         let self = this;
@@ -287,30 +235,19 @@ class TableManager {
         });
     }
 
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-//==================================================================================================================================
-    //    +
-    getAllTables(callback) {
-        this.METATABLE.find({}, callback)
+
+    /*
+    Методы для работы с пользователями
+     */
+    getCurrentUser() {
+        return this.user;
     }
 
-    removeTable({tableName, callback} = {}) {
-        tableName = tableName === undefined ? this.currentTable : tableName;
-        this.removeTableFromMETATABLE(tableName, {callback: callback});
-        fs.unlink(this.getFullTablePath(tableName), (err) => {
-            if (err) throw err;
-            console.log(`${tableName} was deleted`);
-        });
-        this.currentTable = this.currentTable === tableName ? undefined : this.currentTable;
+    setCurrentUser(newUser) {
+        this.user = newUser;
     }
-
+    //=================Сделать асинхронными:=========================================================
+    // $
     renameTable(newName, {tableName} = {}) {
         tableName = tableName === undefined ? this.currentTable : tableName;
 
@@ -327,55 +264,8 @@ class TableManager {
         this.currentTable = newName;
     }
 
-    /*
-   Методы для работы с МЕТАТАБЛИЦЕЙ
-    */
-
-    // +
-    addTableToMETATABLE(tableName, {caption, user, callback} = {}) {
-        user = user === undefined ? this.user : user;
-        caption = caption === undefined ? tableName : caption;
-        let doc = {
-            _id: `${user}@${tableName}`,
-            user: user,
-            table: tableName,
-            caption: caption
-        };
-        this.METATABLE.insert(doc, callback);
-    }
-
-    // +
-    removeTableFromMETATABLE(tableName, {callback, user} = {}) {
-        user = user === undefined ? this.user : user;
-        console.log("remove for USER ==================>", user, tableName);
-        this.METATABLE.remove({_id: `${user}@${tableName}`}, callback);
-    }
-
-    /*
-    Методы для работы с пользователями
-     */
-    getCurrentUser() {
-        return this.user;
-    }
-
-    setCurrentUser(newUser) {
-        this.user = newUser;
-    }
-
-    /*
-    Методы для управлением содержимым таблицы
-     */
-
-    // $
-    addRecord(item, columnValuesDict) {
-        this.db.insert(Object.assign(item, columnValuesDict));
-    }
-
 }
 
-//=============================ЗАПУСК===========================================
-// Вариант для теста:
-// exports.TableManager = TableManager;
-// Вариант для работы:
+
+
 export default TableManager
-//==============================================================================

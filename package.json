@@ -20,6 +20,7 @@
     "babel-preset-node6": "^11.0.0",
     "core-js": "^2.6.5",
     "electron-log": "^3.0.5",
+    "electron-promise-ipc": "^1.2.2",
     "electron-serve": "^0.2.0",
     "lodash": "^4.17.11",
     "nedb": "^1.8.0",

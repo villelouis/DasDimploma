@@ -6,7 +6,7 @@
                 <v-toolbar-side-icon
                         @click.stop="drawer = !drawer"
                 ></v-toolbar-side-icon>
-                <v-toolbar-title>Page title</v-toolbar-title>
+                <v-toolbar-title>Помощник</v-toolbar-title>
             </v-toolbar>
         </div>
         <v-layout

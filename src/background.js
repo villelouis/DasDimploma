@@ -7,6 +7,9 @@ import {
 } from 'vue-cli-plugin-electron-builder/lib'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
+// Работа с межпроцессорным взаимодействием :
+import backapi from './ipc/backapi'
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
@@ -78,6 +81,3 @@ if (isDevelopment) {
     })
   }
 }
-
-// Работа с межпроцессорным взаимодействием :
-import backapi from './ipc/backapi'
